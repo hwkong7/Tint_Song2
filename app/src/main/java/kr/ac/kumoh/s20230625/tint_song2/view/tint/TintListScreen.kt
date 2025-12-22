@@ -39,11 +39,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
+import kotlinx.coroutines.Job
 import kr.ac.kumoh.s20230625.tint_song2.navigation.Screens
 import kr.ac.kumoh.s20230625.tint_song2.viewmodel.TintViewModel
 
 @Composable
-fun TintListScreen(navController: NavHostController, vm: TintViewModel) {
+fun TintListScreen(navController: NavHostController, vm: TintViewModel, onOpenDrawer: () -> Job) {
     val tints by vm.tints.collectAsState()
     var showAdd by remember { mutableStateOf(false) }
 

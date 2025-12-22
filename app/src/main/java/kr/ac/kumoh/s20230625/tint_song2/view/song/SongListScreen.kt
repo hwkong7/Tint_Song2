@@ -39,11 +39,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
+import kotlinx.coroutines.Job
 import kr.ac.kumoh.s20230625.tint_song2.navigation.Screens
 import kr.ac.kumoh.s20230625.tint_song2.viewmodel.SongViewModel
 
 @Composable
-fun SongListScreen(navController: NavHostController, vm: SongViewModel) {
+fun SongListScreen(navController: NavHostController, vm: SongViewModel, onOpenDrawer: () -> Job) {
     val songs by vm.songs.collectAsState()
     var showAdd by remember { mutableStateOf(false) }
 
