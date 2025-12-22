@@ -1,23 +1,25 @@
 package kr.ac.kumoh.s20230625.tint_song2
 
-import androidx.compose.foundation.layout.padding
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
-import androidx.navigation.compose.*
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.rememberNavController
 import kr.ac.kumoh.s20230625.tint_song2.navigation.Screens
 import kr.ac.kumoh.s20230625.tint_song2.view.song.SongDetailScreen
 import kr.ac.kumoh.s20230625.tint_song2.view.song.SongListScreen
 import kr.ac.kumoh.s20230625.tint_song2.view.tint.TintDetailScreen
 import kr.ac.kumoh.s20230625.tint_song2.view.tint.TintListScreen
-import kr.ac.kumoh.s20230625.tint_song2.view.song.SongListScreen
 import kr.ac.kumoh.s20230625.tint_song2.viewmodel.SongViewModel
 import kr.ac.kumoh.s20230625.tint_song2.viewmodel.TintViewModel
 
