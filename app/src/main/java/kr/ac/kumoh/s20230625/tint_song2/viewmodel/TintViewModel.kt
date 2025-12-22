@@ -17,19 +17,19 @@ class TintViewModel(
     private val _tints = MutableStateFlow<List<Tint>>(emptyList())
     val tints = _tints.asStateFlow()
 
-    init { loadTints() }
+    fun findTint(id: String): Tint? {
+        return tints.value.firstOrNull { it.id == id }
+    }
 
     fun loadTints() {
         viewModelScope.launch {
             try {
-                _tints.value = repo.getTints()
+                _tints.value = repo.fetchTints()
             } catch (e: Exception) {
-                Log.e("TintViewModel", "loadTints: $e")
+                Log.e("TintVM", "loadTints 실패: ${e.message}", e)
             }
         }
     }
-
-    fun findTint(id: String): Tint? = _tints.value.find { it.id == id }
 
     fun addTint(
         productName: String,
@@ -39,21 +39,21 @@ class TintViewModel(
         rating: Int,
         description: String?
     ) {
-        val newTint = Tint(
-            id = UUID.randomUUID().toString(),
-            productName = productName,
-            brand = brand,
-            colorFamily = colorFamily,
-            colorHex = colorHex,
-            rating = rating,
-            description = description
-        )
         viewModelScope.launch {
             try {
-                repo.addTint(newTint)
-                _tints.value = _tints.value + newTint
+                val tint = Tint(
+                    id = UUID.randomUUID().toString(), // ✅ 문자열 UUID
+                    productName = productName,
+                    brand = brand,
+                    colorFamily = colorFamily,
+                    colorHex = colorHex,
+                    rating = rating,
+                    description = description
+                )
+                repo.addTint(tint)
+                loadTints() // ✅ 추가 후 즉시 갱신
             } catch (e: Exception) {
-                Log.e("TintViewModel", "addTint: $e")
+                Log.e("TintVM", "addTint 실패: ${e.message}", e)
             }
         }
     }
@@ -62,9 +62,9 @@ class TintViewModel(
         viewModelScope.launch {
             try {
                 repo.deleteTint(id)
-                _tints.value = _tints.value.filter { it.id != id }
+                loadTints() // ✅ 삭제 후 즉시 갱신
             } catch (e: Exception) {
-                Log.e("TintViewModel", "deleteTint: $e")
+                Log.e("TintVM", "deleteTint 실패: ${e.message}", e)
             }
         }
     }

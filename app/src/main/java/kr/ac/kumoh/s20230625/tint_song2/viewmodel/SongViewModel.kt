@@ -16,35 +16,33 @@ class SongViewModel(
 
     private val _songs = MutableStateFlow<List<Song>>(emptyList())
     val songs = _songs.asStateFlow()
-
-    init { loadSongs() }
-
+    fun findSong(id: String): Song? {
+        return songs.value.firstOrNull { it.id == id }
+    }
     fun loadSongs() {
         viewModelScope.launch {
             try {
-                _songs.value = repo.getSongs()
+                _songs.value = repo.fetchSongs()
             } catch (e: Exception) {
-                Log.e("SongViewModel", "loadSongs: $e")
+                Log.e("SongVM", "loadSongs 실패: ${e.message}", e)
             }
         }
     }
 
-    fun findSong(id: String): Song? = _songs.value.find { it.id == id }
-
     fun addSong(title: String, singer: String, rating: Int, lyrics: String?) {
-        val newSong = Song(
-            id = UUID.randomUUID().toString(),
-            title = title,
-            singer = singer,
-            rating = rating,
-            lyrics = lyrics
-        )
         viewModelScope.launch {
             try {
-                repo.addSong(newSong)
-                _songs.value = _songs.value + newSong
+                val song = Song(
+                    id = UUID.randomUUID().toString(),
+                    title = title,
+                    singer = singer,
+                    rating = rating,
+                    lyrics = lyrics
+                )
+                repo.addSong(song)
+                loadSongs()
             } catch (e: Exception) {
-                Log.e("SongViewModel", "addSong: $e")
+                Log.e("SongVM", "addSong 실패: ${e.message}", e)
             }
         }
     }
@@ -53,9 +51,9 @@ class SongViewModel(
         viewModelScope.launch {
             try {
                 repo.deleteSong(id)
-                _songs.value = _songs.value.filter { it.id != id }
+                loadSongs()
             } catch (e: Exception) {
-                Log.e("SongViewModel", "deleteSong: $e")
+                Log.e("SongVM", "deleteSong 실패: ${e.message}", e)
             }
         }
     }
