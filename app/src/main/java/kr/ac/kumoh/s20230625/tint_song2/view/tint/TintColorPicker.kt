@@ -6,6 +6,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -30,17 +31,19 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.Button
 import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -55,6 +58,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import kr.ac.kumoh.s20230625.tint_song2.util.ColorHex
 import kotlin.math.roundToInt
@@ -68,19 +72,22 @@ fun TintColorPicker(
 ) {
     var showSheet by remember { mutableStateOf(false) }
 
-    // 기본값
-    var selectedColor by remember { mutableStateOf(Color(0xFFFF69B4)) } // 핫핑크
-    var newName by remember { mutableStateOf("") }
+    // 기본 선택 색상
+    var selectedColor by remember { mutableStateOf(Color(0xFFFF69B4)) }
 
+    fun colorOf(name: String): Color =
+        customColors[name] ?: baseColors[name] ?: Color.LightGray
+
+    // 칩 목록
     val keys = (baseColors.keys + customColors.keys).distinct().sorted()
 
-    // 원형 칩 + 추가 버튼
+    // ===================== 바깥 “원형 칩 + +버튼” =====================
     LazyRow(
         horizontalArrangement = Arrangement.spacedBy(14.dp),
         contentPadding = PaddingValues(vertical = 8.dp)
     ) {
         items(keys) { key ->
-            val color = customColors[key] ?: baseColors[key] ?: Color.LightGray
+            val color = colorOf(key)
             val selected = selectedName == key
 
             Box(Modifier.size(44.dp), contentAlignment = Alignment.Center) {
@@ -92,6 +99,7 @@ fun TintColorPicker(
                         .border(1.dp, Color(0x22000000), CircleShape)
                         .clickable { onSelect(key, ColorHex.toHex(color)) }
                 )
+
                 if (selected) {
                     Box(
                         Modifier
@@ -120,16 +128,44 @@ fun TintColorPicker(
         }
     }
 
-    // ======= “직접 색상 선택” 시트 =======
+    // ===================== “직접 색상 선택” 시트 =====================
     if (showSheet) {
+        val sheetState = rememberModalBottomSheetState(
+            skipPartiallyExpanded = true,
+            confirmValueChange = { it != SheetValue.PartiallyExpanded }
+        )
+
+        var mode by remember { mutableStateOf("스펙트럼") }
+        var pointerPos by remember { mutableStateOf<Offset?>(null) }
+        var alpha by remember { mutableFloatStateOf(1f) }
+        var newName by remember { mutableStateOf("") }
+
+        // ✅ RGB를 부모에서 들고 관리
+        var r by remember { mutableFloatStateOf(selectedColor.red * 255f) }
+        var g by remember { mutableFloatStateOf(selectedColor.green * 255f) }
+        var b by remember { mutableFloatStateOf(selectedColor.blue * 255f) }
+
+        fun syncRgbFromColor(c: Color) {
+            r = (c.red * 255f).coerceIn(0f, 255f)
+            g = (c.green * 255f).coerceIn(0f, 255f)
+            b = (c.blue * 255f).coerceIn(0f, 255f)
+        }
+
+        fun setPickedColor(c: Color, pos: Offset? = null) {
+            selectedColor = c
+            syncRgbFromColor(c)
+            if (pos != null) pointerPos = pos
+        }
+
+        LaunchedEffect(mode) {
+            if (mode == "슬라이더") syncRgbFromColor(selectedColor)
+        }
+
         ModalBottomSheet(
             onDismissRequest = { showSheet = false },
+            sheetState = sheetState,
             containerColor = Color.White
         ) {
-            var mode by remember { mutableStateOf("스펙트럼") }
-            var pointerPos by remember { mutableStateOf<Offset?>(null) }
-            var alpha by remember { mutableFloatStateOf(1f) }
-
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -137,28 +173,37 @@ fun TintColorPicker(
                     .padding(horizontal = 16.dp, vertical = 10.dp)
             ) {
                 // ---------- 헤더 ----------
+                val current = selectedColor.copy(alpha = alpha)
+                val hex = "#%06X".format(0xFFFFFF and current.toArgb())
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text("직접 색상 선택", style = MaterialTheme.typography.titleMedium)
                     Spacer(Modifier.weight(1f))
+                    TextButton(onClick = {
+                        val key = if (newName.isNotBlank()) newName.trim() else "사용자색상"
+                        customColors[key] = current
+                        onSelect(key, hex)
+                        showSheet = false
+                    }) { Text("추가") }
+
                     IconButton(onClick = { showSheet = false }) {
                         Icon(Icons.Default.Close, contentDescription = "닫기", tint = Color.Gray)
                     }
                 }
-                Divider()
 
+                Divider()
                 Spacer(Modifier.height(8.dp))
 
-                // ---------- 모드 탭 ----------
+                // ---------- 탭 ----------
                 val modes = listOf("격자", "스펙트럼", "슬라이더")
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(44.dp)
                         .background(Color(0xFFF6F6F6), MaterialTheme.shapes.medium),
-                    horizontalArrangement = Arrangement.SpaceEvenly,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     modes.forEachIndexed { index, name ->
@@ -167,14 +212,12 @@ fun TintColorPicker(
                                 .weight(1f)
                                 .fillMaxHeight()
                                 .clickable { mode = name }
-                                .background(if (mode == name) Color.White else Color.Transparent)
-                                .padding(vertical = 8.dp),
+                                .background(if (mode == name) Color.White else Color.Transparent),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
                                 text = name,
-                                color = if (mode == name) Color.Black else Color.Gray,
-                                style = MaterialTheme.typography.bodyMedium
+                                color = if (mode == name) Color.Black else Color.Gray
                             )
                         }
                         if (index < modes.lastIndex) {
@@ -190,22 +233,21 @@ fun TintColorPicker(
 
                 Spacer(Modifier.height(16.dp))
 
-                // ---------- 선택 모드별 UI ----------
+                // ---------- 모드별 UI ----------
                 when (mode) {
-                    "격자" -> ColorGrid { selectedColor = it }
-                    "스펙트럼" -> SpectrumCanvas(selectedColor, pointerPos) { c, pos ->
-                        selectedColor = c
-                        pointerPos = pos
-                    }
-                    "슬라이더" -> RGBSliderPicker { selectedColor = it }
+                    "격자" -> ColorGrid { picked -> setPickedColor(picked) }
+                    "스펙트럼" -> SpectrumCanvas(pointerPos) { c, pos -> setPickedColor(c, pos) }
+                    "슬라이더" -> RGBSliderPicker(
+                        r = r, g = g, b = b,
+                        onR = { r = it; setPickedColor(Color(r / 255f, g / 255f, b / 255f)) },
+                        onG = { g = it; setPickedColor(Color(r / 255f, g / 255f, b / 255f)) },
+                        onB = { b = it; setPickedColor(Color(r / 255f, g / 255f, b / 255f)) },
+                    )
                 }
 
-                Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(14.dp))
 
                 // ---------- 미리보기 ----------
-                val current = selectedColor.copy(alpha = alpha)
-                val hex = "#%06X".format(0xFFFFFF and current.toArgb())
-
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
                         Modifier
@@ -222,47 +264,21 @@ fun TintColorPicker(
                 Text("불투명도: ${(alpha * 100).toInt()}%")
                 Slider(value = alpha, onValueChange = { alpha = it }, valueRange = 0f..1f)
 
-                Spacer(Modifier.height(16.dp))
-
-                // ---------- 이름 입력 ----------
+                Spacer(Modifier.height(12.dp))
                 OutlinedTextField(
                     value = newName,
                     onValueChange = { newName = it },
-                    label = { Text("색상 이름 (예: 로지핑크)") },
+                    label = { Text("색상 이름 (선택)") },
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                Spacer(Modifier.height(16.dp))
-
-                // ---------- 하단 버튼 ----------
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    TextButton(
-                        onClick = { showSheet = false },
-                        modifier = Modifier.weight(1f)
-                    ) { Text("취소") }
-
-                    Button(
-                        onClick = {
-                            val key = newName.trim().ifBlank { "사용자색상" }
-                            customColors[key] = current
-                            onSelect(key, hex)
-                            showSheet = false
-                        },
-                        enabled = newName.isNotBlank(),
-                        modifier = Modifier.weight(1f)
-                    ) { Text("추가") }
-                }
-
-                Spacer(Modifier.height(24.dp))
+                Spacer(Modifier.height(18.dp))
             }
         }
     }
 }
 
-// ===================== 서브 컴포저블 =====================
+// ============ 하위 컴포저블 ============
 @Composable
 private fun ColorGrid(onPick: (Color) -> Unit) {
     val palette = listOf(
@@ -287,10 +303,19 @@ private fun ColorGrid(onPick: (Color) -> Unit) {
 
 @Composable
 private fun SpectrumCanvas(
-    color: Color,
     pointerPos: Offset?,
     onPick: (Color, Offset) -> Unit
 ) {
+    fun colorAt(pos: Offset, canvasSize: IntSize): Color {
+        val w = canvasSize.width.toFloat().coerceAtLeast(1f)
+        val h = canvasSize.height.toFloat().coerceAtLeast(1f)
+        val x = pos.x.coerceIn(0f, w)
+        val y = pos.y.coerceIn(0f, h)
+        val hue = (x / w) * 360f
+        val value = 1f - (y / h)
+        return Color.hsv(hue, 1f, value.coerceIn(0f, 1f))
+    }
+
     Canvas(
         Modifier
             .fillMaxWidth()
@@ -299,11 +324,22 @@ private fun SpectrumCanvas(
             .border(1.dp, Color.LightGray)
             .pointerInput(Unit) {
                 detectTapGestures { offset ->
-                    val h = offset.x / size.width * 360f
-                    val v = 1 - offset.y / size.height
-                    val c = Color.hsv(h, 1f, v.coerceIn(0f, 1f))
-                    onPick(c, offset)
+                    val picked = colorAt(offset, size)
+                    onPick(picked, offset)
                 }
+            }
+            .pointerInput(Unit) {
+                detectDragGestures(
+                    onDragStart = { start ->
+                        val picked = colorAt(start, size)
+                        onPick(picked, start)
+                    },
+                    onDrag = { change, _ ->
+                        val pos = change.position
+                        val picked = colorAt(pos, size)
+                        onPick(picked, pos)
+                    }
+                )
             }
     ) {
         for (x in 0 until size.width.roundToInt() step 4) {
@@ -319,36 +355,21 @@ private fun SpectrumCanvas(
         }
 
         pointerPos?.let { pos ->
-            drawCircle(
-                color = Color.White,
-                radius = 10f,
-                center = pos,
-                style = Stroke(width = 2f)
-            )
+            drawCircle(Color.White, 10f, pos, style = Stroke(2f))
         }
     }
 }
 
 @Composable
-private fun RGBSliderPicker(onPick: (Color) -> Unit) {
-    var r by remember { mutableFloatStateOf(255f) }
-    var g by remember { mutableFloatStateOf(120f) }
-    var b by remember { mutableFloatStateOf(120f) }
-
+private fun RGBSliderPicker(
+    r: Float, g: Float, b: Float,
+    onR: (Float) -> Unit,
+    onG: (Float) -> Unit,
+    onB: (Float) -> Unit
+) {
     Column {
-        Text("R: ${r.toInt()}")
-        Slider(value = r, onValueChange = {
-            r = it; onPick(Color(r / 255f, g / 255f, b / 255f))
-        }, valueRange = 0f..255f)
-
-        Text("G: ${g.toInt()}")
-        Slider(value = g, onValueChange = {
-            g = it; onPick(Color(r / 255f, g / 255f, b / 255f))
-        }, valueRange = 0f..255f)
-
-        Text("B: ${b.toInt()}")
-        Slider(value = b, onValueChange = {
-            b = it; onPick(Color(r / 255f, g / 255f, b / 255f))
-        }, valueRange = 0f..255f)
+        Text("R: ${r.toInt()}"); Slider(value = r, onValueChange = onR, valueRange = 0f..255f)
+        Text("G: ${g.toInt()}"); Slider(value = g, onValueChange = onG, valueRange = 0f..255f)
+        Text("B: ${b.toInt()}"); Slider(value = b, onValueChange = onB, valueRange = 0f..255f)
     }
 }
