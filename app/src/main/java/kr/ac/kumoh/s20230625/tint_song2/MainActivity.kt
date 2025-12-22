@@ -1,47 +1,107 @@
 package kr.ac.kumoh.s20230625.tint_song2
 
+import androidx.compose.foundation.layout.padding
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
-import kr.ac.kumoh.s20230625.tint_song2.ui.theme.Tint_Song2Theme
+import androidx.compose.runtime.*
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.compose.*
+import kr.ac.kumoh.s20230625.tint_song2.navigation.Screens
+import kr.ac.kumoh.s20230625.tint_song2.view.SongDetailScreen
+import kr.ac.kumoh.s20230625.tint_song2.view.SongListScreen
+import kr.ac.kumoh.s20230625.tint_song2.view.TintDetailScreen
+import kr.ac.kumoh.s20230625.tint_song2.view.TintListScreen
+import kr.ac.kumoh.s20230625.tint_song2.viewmodel.SongViewModel
+import kr.ac.kumoh.s20230625.tint_song2.viewmodel.TintViewModel
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
         setContent {
-            Tint_Song2Theme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
-                    )
+            MainScreen()
+        }
+    }
+}
+
+@Composable
+fun MainScreen(
+    songVm: SongViewModel = viewModel(),
+    tintVm: TintViewModel = viewModel()
+) {
+    val navController = rememberNavController()
+    val backStackEntry by navController.currentBackStackEntryAsState()
+    val route = backStackEntry?.destination?.route ?: Screens.TINT
+
+    androidx.compose.material3.Scaffold(
+        bottomBar = {
+            BottomBar(
+                currentRoute = route,
+                onNavigate = { target ->
+                    navController.navigate(target) {
+                        launchSingleTop = true
+                        popUpTo(navController.graph.findStartDestination().id) {
+                            saveState = true
+                        }
+                        restoreState = true
+                    }
                 }
+            )
+        }
+    ) { padding ->
+        NavHost(
+            navController = navController,
+            startDestination = Screens.TINT,
+            modifier = androidx.compose.ui.Modifier.padding(padding)
+        ) {
+            composable(Screens.TINT) {
+                TintListScreen(navController, tintVm)
+            }
+            composable(Screens.SONG) {
+                SongListScreen(navController, songVm)
+            }
+            composable(Screens.SONG_DETAIL_ROUTE) { entry ->
+                val id = entry.arguments?.getString(Screens.ID_ARG) ?: return@composable
+                val song = songVm.findSong(id) ?: return@composable
+                SongDetailScreen(song)
+            }
+            composable(Screens.TINT_DETAIL_ROUTE) { entry ->
+                val id = entry.arguments?.getString(Screens.ID_ARG) ?: return@composable
+                val tint = tintVm.findTint(id) ?: return@composable
+                TintDetailScreen(tint)
             }
         }
     }
 }
 
 @Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
+private fun BottomBar(
+    currentRoute: String,
+    onNavigate: (String) -> Unit
+) {
+    val selectedTab = when {
+        currentRoute.startsWith(Screens.TINT) || currentRoute.startsWith(Screens.TINT_DETAIL) -> Screens.TINT
+        else -> Screens.SONG
+    }
 
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    Tint_Song2Theme {
-        Greeting("Android")
+    NavigationBar {
+        NavigationBarItem(
+            selected = selectedTab == Screens.TINT,
+            onClick = { onNavigate(Screens.TINT) },
+            icon = { Text("💄") },
+            label = { Text("Tint") }
+        )
+        NavigationBarItem(
+            selected = selectedTab == Screens.SONG,
+            onClick = { onNavigate(Screens.SONG) },
+            icon = { Text("🎵") },
+            label = { Text("Songs") }
+        )
     }
 }
+
