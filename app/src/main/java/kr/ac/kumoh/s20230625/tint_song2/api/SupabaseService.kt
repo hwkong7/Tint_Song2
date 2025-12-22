@@ -23,7 +23,7 @@ interface SupabaseService {
 
     @DELETE("songs")
     suspend fun deleteSong(
-        @Query("id") filter: String,              // "eq.<uuid>"
+        @Query("id") filter: String,
         @Query("apikey") apikey: String = SupabaseApiConfig.API_KEY
     ): Unit
 
@@ -41,7 +41,7 @@ interface SupabaseService {
 
     @DELETE("cosmetics")
     suspend fun deleteTint(
-        @Query("id") filter: String,              // "eq.<uuid>"
+        @Query("id") filter: String,
         @Query("apikey") apikey: String = SupabaseApiConfig.API_KEY
     ): Unit
 }
