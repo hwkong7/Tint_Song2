@@ -13,10 +13,11 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.*
 import kr.ac.kumoh.s20230625.tint_song2.navigation.Screens
-import kr.ac.kumoh.s20230625.tint_song2.view.SongDetailScreen
-import kr.ac.kumoh.s20230625.tint_song2.view.SongListScreen
-import kr.ac.kumoh.s20230625.tint_song2.view.TintDetailScreen
-import kr.ac.kumoh.s20230625.tint_song2.view.TintListScreen
+import kr.ac.kumoh.s20230625.tint_song2.view.song.SongDetailScreen
+import kr.ac.kumoh.s20230625.tint_song2.view.song.SongListScreen
+import kr.ac.kumoh.s20230625.tint_song2.view.tint.TintDetailScreen
+import kr.ac.kumoh.s20230625.tint_song2.view.tint.TintListScreen
+import kr.ac.kumoh.s20230625.tint_song2.view.song.SongListScreen
 import kr.ac.kumoh.s20230625.tint_song2.viewmodel.SongViewModel
 import kr.ac.kumoh.s20230625.tint_song2.viewmodel.TintViewModel
 
