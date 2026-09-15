@@ -67,6 +67,14 @@ CREATE TABLE public.cosmetics (
 ## 설계 문서
 
 유스케이스별 시퀀스 다이어그램(목록 조회 / 상세 조회 / 추가 / 삭제)을 작성한 뒤 구현했습니다.
+<img width="885" height="485" alt="image" src="https://github.com/user-attachments/assets/4cc9db53-defe-4887-8494-2d109afb3bbb" />
+3.4.1 틴트 목록 출력 Sequence (UC-01)
+<img width="610" height="338" alt="image" src="https://github.com/user-attachments/assets/9cc32f36-0af7-4862-9317-a205f1c1fe3d" />
+3.4.2 틴트 상세 조회 Sequence (UC-02)
+<img width="1089" height="614" alt="image" src="https://github.com/user-attachments/assets/97f01e13-c41b-44b7-9919-edb85d3bde74" />
+3.4.3 틴트 추가 Sequence (UC-03)
+<img width="923" height="485" alt="image" src="https://github.com/user-attachments/assets/7b5f6965-22cb-4db2-9cca-c8dc1e926b09" />
+3.4.4 틴트 삭제 Sequence (UC-04)
 
 ## 회고
 
